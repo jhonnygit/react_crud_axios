@@ -133,7 +133,7 @@ const TutorialsList=()=>{
 
             <Link
               to={"/tutorials/" + currentTutorial.id}
-              className="badge badge-warning"
+              className="btn btn-warning"
             >
               Edit
             </Link>
