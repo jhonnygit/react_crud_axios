@@ -1,6 +1,9 @@
 import React,{useState,useEffect} from "react";
 import TutorialDataService from "../services/TutorialService";
 import {Link} from "react-router-dom";
+import Pagination from '@mui/material/Pagination';
+
+
 
 const TutorialsList=()=>{
     const [tutorials,setTutorials]=useState([]);
@@ -8,47 +11,84 @@ const TutorialsList=()=>{
     const [currentIndex,setCurrentIndex]=useState(-1);
     const [searchTitle,setSearchTitle]=useState("");
 
-    useEffect(()=>{
-        retrieveTutorials();
-    },[]);
+    const [page,setPage]=useState(1);
+    const [count, setCount] = useState(0);
+    const [pageSize, setPageSize] = useState(3);
 
-    const onChangeSearchTitle=e=>{
-        const searchTitle=e.target.value;
-        setSearchTitle(searchTitle);
+    const pageSizes = [3, 6, 9];
+
+    const onChangeSearchTitle=(e)=>{
+      const searchTitle=e.target.value;
+      setSearchTitle(searchTitle);
+    };
+
+    const getRequestParams = (searchTitle, page, pageSize) => {
+      let params = {};
+  
+      if (searchTitle) {
+        params["title"] = searchTitle;
+      }
+  
+      if (page) {
+        params["page"] = page - 1;
+      }
+  
+      if (pageSize) {
+        params["size"] = pageSize;
+      }
+  
+      return params;
     };
 
     const retrieveTutorials=()=>{
-        TutorialDataService.getAll()
+        const params = getRequestParams(searchTitle, page, pageSize);
+        TutorialDataService.getAll(params)
         .then(response=>{
-            setTutorials(response.data);
+            const { tutorials, totalPages } = response.data;
+            setTutorials(tutorials);
+            setCount(totalPages);
             console.log(response.data);
         })
-        .catch(e=>{
+        .catch((e)=>{
             console.log(e);
         })
     };
 
-    const refreshList=()=>{
-        retrieveTutorials();
-        setCurrentTutorial(null);
-        setCurrentIndex(-1);
-    };
+  //useEffect((retrieveTutorials, [page,pageSize]));
+  useEffect(() => {    
+    retrieveTutorials();
+  },[searchTitle, page, pageSize]);
 
-    const setActiveTutorial=(tutorial,index)=>{
-        setCurrentTutorial(tutorial);
-        setCurrentIndex(index);
-    };
+   const handlePageChange = (event, value) => {
+    setPage(value);
+  };
 
-    const removeAllTutorials=()=>{
-        TutorialDataService.removeAll()
-        .then(response=>{
-            console.log(response.data);
-            refreshList();
-        })
-        .catch(e=>{
-            console.log(e);
-        })
-    };
+  const handlePageSizeChange = (event) => {
+    setPageSize(event.target.value);
+    setPage(1);
+  };
+
+  const refreshList=()=>{
+      retrieveTutorials();
+      setCurrentTutorial(null);
+      setCurrentIndex(-1);
+  };
+
+  const setActiveTutorial=(tutorial,index)=>{
+      setCurrentTutorial(tutorial);
+      setCurrentIndex(index);
+  };
+
+  const removeAllTutorials=()=>{
+      TutorialDataService.removeAll()
+      .then(response=>{
+          console.log(response.data);
+          refreshList();
+      })
+      .catch(e=>{
+          console.log(e);
+      })
+  };
 
     const findByTitle=()=>{
         TutorialDataService.findByTitle(searchTitle)
@@ -86,20 +126,42 @@ const TutorialsList=()=>{
       <div className="col-md-6">
         <h4>Tutorials List</h4>
 
-        <ul className="list-group">
-          {tutorials &&
-            tutorials.map((tutorial, index) => (
-              <li
-                className={
-                  "list-group-item " + (index === currentIndex ? "active" : "")
-                }
-                onClick={() => setActiveTutorial(tutorial, index)}
-                key={index}
-              >
-                {tutorial.title}
-              </li>
+        <div className="mt-3">
+          {"Items per Page: "}
+          <select onChange={handlePageSizeChange} value={pageSize}>
+            {pageSizes.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
             ))}
-        </ul>
+          </select>
+          
+          <Pagination
+            className="my-3"
+            count={count}
+            page={page}
+            siblingCount={1}
+            boundaryCount={1}
+            variant="outlined"
+            shape="rounded"
+            onChange={handlePageChange}
+          />          
+        </div>
+        <ul className="list-group">
+            {tutorials &&
+              tutorials.map((tutorial, index) => (
+                <li
+                  className={
+                    "list-group-item " + (index === currentIndex ? "active" : "")
+                  }
+                  onClick={() => setActiveTutorial(tutorial, index)}
+                  key={index}
+                >
+                  {tutorial.title}
+                </li>
+              ))}
+          </ul>      
+        
 
         <button
           className="m-3 btn btn-sm btn-danger"
